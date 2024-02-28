@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enviar Alerta</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body{
+            font-family: 'Poppins', sans-serif;
+            height: 100vh   ;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        input{
+            font-family: inherit;
+            text-align: center;
+            width: 70vw;
+            height: 10vw;
+            font-size: 1.5rem;
+            border-radius: 0.5rem 0.5rem 0 0;
+            border: 2px solid darkblue;
+            transition: all 0.2s ease-in-out;
+        }
+        input:hover{
+            width: 80vw;
+        }
+        button{
+            padding: 0.2rem;
+            border-radius: 0 0 0.5rem 0.5rem;
+            background-color: darkblue;
+            color: white;
+            border: none;
+            font-family: inherit;
+            font-size: 1.5rem;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover{
+            background-color: #eee;
+            color: darkblue;
+            font-weight: bold;
+        }
+        .main{
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <div class="main">
+        <input type="text" placeholder="ALERTA" id="alertText">
+        <button onclick="newAlert()" id="send">ENVIAR</button>
+    </div>
+    <script>
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Conectado al servidor');
+        });
+
+        const buttonS = document.getElementById('send')
+        const inputValue = document.getElementById('alertText')
+        function newAlert(){
+            sendAlert(inputValue.value)
+        }
+        function sendAlert(text){
+            socket.emit('newAlert', text)
+            alert(`Alerta: ${text} enviada con éxito`)
+        }
+
+    </script>
+</body>
+</html>

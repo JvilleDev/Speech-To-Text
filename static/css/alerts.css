@@ -1,0 +1,40 @@
+.alerta {
+  position: fixed;
+  top: 10%;
+  right: -100%;
+  width: 300px;
+  padding: 10px;
+  margin: 10px;
+  border-radius: 5px;
+  font-size: 16px;
+  z-index: 1000;
+  transition: right 0.3s cubic-bezier(0.5, 0, 0, 1);
+}
+.alert-info {
+  background-color: #3498db;
+  color: #fff;
+}
+
+.alert-danger {
+  background-color: #e74c3c;
+  color: #fff;
+}
+
+.alert-success {
+  background-color: #2ecc71;
+  color: #fff;
+}
+
+.alert-warning {
+  background-color: #f39c12;
+  color: #fff;
+}
+.alert-timeline {
+  height: 5px;
+  width: 100%;
+  background-color: #ccc;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  transition: width 4s linear;
+}

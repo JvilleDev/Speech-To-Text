@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ver Alertas</title>
+    <style>
+        #alert-c{
+            scroll-behavior: smooth;
+        }
+        .alert-container {
+            width: 95%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .alert {
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            border-radius: 10px;
+            background-color: #f3f3f3;
+            margin: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            animation: slide-in 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            font-size: 3.5rem;
+            transition: opacity 0.3s ease;
+        }
+
+        .timer-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 6px;
+            border-radius: 1rem;
+            background-color: #ccc;
+            animation: timer 10s linear;
+        }
+
+        @keyframes timer {
+            0% {
+                width: 100%;
+            }
+
+            100% {
+                width: 0;
+            }
+        }
+
+        @keyframes slide-in {
+            0% {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+    </style>
+        <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div id="alert-c" class="alert-container"></div>
+    <script>
+    const socket = io.connect();
+    socket.on('alert', (data) => {
+        console.log('Nueva alerta:', data)
+            const alertC = document.getElementById('alert-c');
+
+            if (alertC) {
+                const newAlert = document.createElement('div');
+                newAlert.classList.add('alert');
+
+                const timerLine = document.createElement('div');
+                timerLine.classList.add('timer-line');
+                newAlert.appendChild(timerLine);
+
+                const alertContent = document.createElement('div');
+                alertContent.textContent = data;
+                newAlert.appendChild(alertContent);
+
+                alertC.appendChild(newAlert);
+                scrollToBottom();
+                setTimeout(() => {
+                    if (newAlert) {
+                        newAlert.style.transition = 'opacity 0.5s ease';
+                        newAlert.style.opacity = '0';
+                        setTimeout(() => {
+                            if (alertC.firstChild) {
+                                alertC.removeChild(alertC.firstChild);
+                            }
+                        }, 400);
+                    }
+                }, 10000);
+            } else {
+                console.error('Contenedor de alerta no encontrado');
+            }
+        });
+        function scrollToBottom() {
+  const element = document.getElementById("alert-c");
+  element.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+
+</script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/static/fonts/Poppins/poppins.css" rel="stylesheet">
+    <title>Programa</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+            padding: 1rem;
+            scroll-behavior: smooth;
+            align-items: center;
+            height: 90vh;
+            justify-content: end;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            padding: 10px 20px;
+            background-color: #415a77 !important;
+            color: #e0e1dd;
+            border: none;
+            border-radius: 1rem;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-weight: bold;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+
+        #transcription-container {
+            background-color: #fff;
+            color: #0d1b2a;
+            width: 90%;
+            text-align: left;
+            align-items: center;
+            scroll-behavior: smooth;
+            padding: 1rem;
+            font-size: 3rem;
+            border-radius: 0.5rem;
+            height: 8rem;
+            overflow-y: auto;
+            box-shadow: 0rem 0rem 0.625rem 0rem rgb(0 0 0 / 50%);
+        }
+
+        #transcription-container::-webkit-scrollbar {
+            width: 5px;
+            border-radius: 100px;
+        }
+
+        #transcription-container::-webkit-scrollbar-track {
+            background-color: transparent;
+            border-radius: 100px;
+        }
+
+        #transcription-container::-webkit-scrollbar-thumb {
+            background-color: transparent;
+            border-radius: 100px;
+        }
+
+        .preloader {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+        }
+
+        .alert-container {
+            width: 95%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .alert {
+            padding: 20px;
+            position: relative;
+            border-radius: 10px;
+            background-color: #f3f3f3;
+            margin: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            animation: slide-in 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            font-size: 3.5rem;
+            transition: opacity 0.3s ease;
+        }
+
+        .timer-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 6px;
+            border-radius: 1rem;
+            background-color: #ccc;
+            animation: timer 10s linear;
+        }
+
+        @keyframes timer {
+            0% {
+                width: 100%;
+            }
+
+            100% {
+                width: 0;
+            }
+        }
+
+        @keyframes slide-in {
+            0% {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        body.loaded .preloader {
+            display: none;
+        }
+
+        body.loaded .content {
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="alert-c" class="alert-container"></div>
+
+    </div>
+    <div class="preloader">
+        <div class="loader"></div>
+    </div>
+    <div id="transcription-container">
+        <div id="transcription" style="font-family: 'Poppins', sans-serif;"></div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io.connect();
+        const transcriptionDiv = document.getElementById('transcription');
+        socket.on('viewer', (data) => {
+            transcriptionDiv.textContent = data;
+            scrollToBottomIfNeeded();
+        });
+        socket.on('connect_error', (error) => {
+            console.error('Error de conexión:', error);
+        });
+        socket.on('disconnect', () => {
+            console.log('Desconectado del servidor');
+        });
+        socket.on('alert', (data) => {
+            const alertC = document.getElementById('alert-c');
+
+            if (alertC) {
+                const newAlert = document.createElement('div');
+                newAlert.classList.add('alert');
+
+                const timerLine = document.createElement('div');
+                timerLine.classList.add('timer-line');
+                newAlert.appendChild(timerLine);
+
+                const alertContent = document.createElement('div');
+                alertContent.textContent = data;
+                newAlert.appendChild(alertContent);
+
+                alertC.appendChild(newAlert);
+                setTimeout(() => {
+                    if (newAlert) {
+                        newAlert.style.transition = 'opacity 0.5s ease';
+                        newAlert.style.opacity = '0';
+                        setTimeout(() => {
+                            if (alertC.firstChild) {
+                                alertC.removeChild(alertC.firstChild);
+                            }
+                        }, 400);
+                    }
+                }, 10000);
+            } else {
+                console.error('Contenedor de alerta no encontrado');
+            }
+        });
+
+
+        function scrollToBottomIfNeeded() {
+            const transcriptionContainer = document.getElementById("transcription-container");
+            transcriptionContainer.scrollTop = transcriptionContainer.scrollHeight;
+        }
+        document.addEventListener("DOMContentLoaded", function () {
+            let preloader = document.querySelector(".preloader");
+            preloader.style.display = "flex";
+            setTimeout(function () {
+                preloader.style.display = "none";
+            }, 300);
+        });
+        function checkURL() {
+            const url = new URL(window.location.href);
+            const queryParams = url.searchParams;
+            const noalert = queryParams.get('noalert');
+
+            if (noalert) {
+                const alertElement = document.getElementById("alert-c");
+                if (alertElement) {
+                    alertElement.style.display = "none";
+                }
+            }
+        }
+        checkURL();
+
+    </script>
+</body>
+
+</html>

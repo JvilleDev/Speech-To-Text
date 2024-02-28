@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/static/fonts/Poppins/poppins.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <script src="/static/js/popper.min.js"></script>
+    <script src="/static/js/pdfmake.min.js"></script>
+    <link rel="stylesheet" href="/static/FontAwesome/css/all.min.css" />
+    <script src="/static/js/vfs_fonts.js"></script>
+    <script src="/static/js/jquery-3.7.1.min.js"></script>
+    <script src="/static/js/alert.js"></script>
+    <link rel="stylesheet" href="/static/css/alerts.css">
+    <title>Ver Transcripción</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        #transcription-container {
+            margin-top: 20px;
+            max-height: 50vh;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+            background-color: #f8f9fa;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+            font-size: 2rem;
+            padding: 1rem;
+        }
+        .highlight {
+            background-color: yellow;
+            font-weight: bold;
+        }
+        #searchResults ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #searchResults li {
+            margin-bottom: 5px;
+        }
+
+        #searchResults {
+            max-height: 15vh;
+            overflow-y: scroll;
+        }
+
+        #transcription-container::-webkit-scrollbar,
+        #searchResults::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #transcription-container::-webkit-scrollbar-thumb,
+        #searchResults::-webkit-scrollbar-thumb {
+            background-color: #333;
+            border-radius: 4px;
+        }
+
+        #transcription-container::-webkit-scrollbar-thumb:hover,
+        #searchResults::-webkit-scrollbar-thumb:hover {
+            background-color: #555;
+        }
+
+        #transcription-container::-webkit-scrollbar-track,
+        #searchResults::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .nav-link {
+            text-align: center;
+            font-weight: bold;
+            transition: color 0.2s ease-in-out, font-weight 0.2s ease-in-out, background-color 0.2s ease-in-out;
+        }
+
+
+        .menu {
+            font-weight: 600 !important;
+            border-radius: 0.5rem;
+            margin-right: 0.5rem;
+            transition: color 0.2s ease-in-out, font-weight 0.2s ease-in-out, background-color 0.2s ease-in-out !important;
+        }
+
+        .menu.active,
+        .menu:hover {
+            background-color: #007bff;
+            color: rgb(255, 255, 255) !important;
+        }
+
+        .navbar {
+            padding: 1rem !important;
+            justify-content: center !important;
+        }
+
+        .preloader {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        body.loaded .preloader {
+            display: none;
+        }
+
+        body.loaded .content {
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="preloader">
+        <div class="loader"></div>
+    </div>
+    <div id="alert-container"></div>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="/">
+            <img src="favicon.ico" alt="Logo" width="30" height="30" class="d-inline-block align-top">
+            Voz a Texto
+        </a>
+        <div class="navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link menu" href="/" target="_blank">Transcripción</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link menu active" href="/transcripcion" target="_blank">Visualizador</a>
+                </li>
+                <li class="nav-item">
+                    <a id="link" class="nav-link menu" href="/programa" target="_blank">Insertar en programa</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="container">
+        <h1 class="mt-5" style="font-weight: bold;">Transcripción completa</h1>
+        <div class="input-group mb-3">
+            <input type="text" id="searchInput" class="form-control" placeholder="Buscar en la transcripción...">
+        </div>
+        <div id="searchResults" class="mt-3"></div>
+
+        <div style="display: flex;flex-direction: row;align-items: center;justify-content: center;">
+            <div class="form-check form-switch mt-3">
+                <input class="form-check-input" type="checkbox" id="toggleScrollSwitch" onclick="toggleScrollEnabled()">
+                <label class="form-check-label" for="toggleScrollSwitch"
+                    style="margin-right: 0.5rem;">Desplazamiento</label>
+            </div>
+            <button class="btn btn-primary mt-3" id="generatePdfButton" style="margin-left: 0.5rem;"><i
+                    class="fa fa-file-pdf" aria-hidden="true" style="font-size: 2rem;"></i></button>
+        </div>
+        <div id="transcription-container" class="mt-4">
+            <div id="transcription"></div>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function () {
+            const searchInput = $('#searchInput');
+            const searchResults = $('#searchResults');
+            const transcriptionTextElement = $('#transcription-container');
+            searchInput.on('input', function () {
+                const searchTerm = $(this).val().trim().toLowerCase();
+                if (searchTerm.length < 2) {
+                    searchResults.html('');
+                    return;
+                }
+
+                const searchTerms = searchTerm.split(' ');
+                const transcriptionText = transcriptionTextElement.text().toLowerCase();
+                const words = transcriptionText.split(/\s+/);
+
+                const results = [];
+
+                for (let i = 0; i < words.length; i++) {
+                    const startIndex = i;
+                    let matched = true;
+
+                    for (let j = 0; j < searchTerms.length; j++) {
+                        if (i + j >= words.length || !words[i + j].includes(searchTerms[j])) {
+                            matched = false;
+                            break;
+                        }
+                    }
+
+                    if (matched) {
+                        const contextStartIndex = Math.max(0, i - 3);
+                        const contextEndIndex = Math.min(words.length, i + searchTerms.length + 3);
+                        const contextWords = words.slice(contextStartIndex, contextEndIndex);
+                        const matchedText = contextWords.join(' ');
+                        const highlightedText = matchedText.replace(new RegExp(searchTerms.join('\\s+'), 'ig'), '<span class="highlight">$&</span>');
+                        results.push(highlightedText);
+                    }
+                }
+
+                const resultList = results.map((result) => `<li class="list-group-item">${result}</li>`);
+                searchResults.html(`<ul class="list-group">${resultList.join('')}</ul>`);
+            });
+        });
+        $('#generatePdfButton').on('click', function () {
+            const transcriptionTextElement = $('#transcription-container');
+            transcriptionText = $('#transcription-container').text();
+            const transcriptionTexto = transcriptionText.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+            generatePDF(transcriptionText);
+        });
+
+        function generatePDF(text) {
+            const currentDate = new Date();
+            const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            const formattedDate = currentDate.toLocaleDateString('es-ES', options);
+
+            const docDefinition = {
+                content: [
+                    { text: `Transcripción para el ${formattedDate}`, fontSize: 16, bold: true, margin: [0, 0, 0, 10] },
+                    { text: text }
+                ]
+            };
+            window.pdfMake.createPdf(docDefinition).download(`transcripcion_${formattedDate}.pdf`);
+        }
+
+
+
+    </script>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        const transcriptionDiv = document.getElementById('transcription-container');
+        let scrollIsEnabled = false;
+
+        socket.on('updateText', (text) => {
+            if (transcriptionDiv) {
+                transcriptionDiv.innerHTML = text;
+                scrollToBottomIfNeeded();
+            }
+        });
+        socket.on('connect', () => {
+            showAlert('Conexión exitosa al servidor', 'info');
+        });
+        socket.on('disconnect', () => {
+            showAlert('Desconectado del servidor', 'danger');
+        });
+        function toggleScrollEnabled() {
+            scrollIsEnabled = !scrollIsEnabled;
+        }
+        function scrollToBottomIfNeeded() {
+            if (scrollIsEnabled) {
+                transcriptionDiv.scrollTop = transcriptionDiv.scrollHeight;
+            }
+        }
+        function marcarPaginaActual() {
+            let pathActual = window.location.pathname;
+            let elementosMenu = document.getElementsByClassName("menu");
+            for (let i = 0; i < elementosMenu.length; i++) {
+                let elemento = elementosMenu[i];
+                let href = elemento.getAttribute("href");
+                if (href === pathActual) {
+                    elemento.classList.add("active");
+                } else {
+                    elemento.classList.remove("active");
+                }
+            }
+        }
+
+        window.onload = marcarPaginaActual;
+        document.addEventListener("DOMContentLoaded", function () {
+            let preloader = document.querySelector(".preloader");
+            preloader.style.display = "flex";
+            setTimeout(function () {
+                preloader.style.display = "none";
+            }, 300);
+        });
+        let enlace = document.getElementById('link');
+        enlace.addEventListener('click', function (event) {
+            event.preventDefault();
+            let host = window.location.hostname;
+            let enlaceURL = 'http://' + host + ':3000' + enlace.getAttribute('href');
+            let input = document.createElement('input');
+            input.value = enlaceURL;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            showAlert('Enlace copiado. Agrégalo a vMix u OBS para ver la transcripción en tiempo real', 'info');
+        });
+    </script>
+</body>
+
+</html>
